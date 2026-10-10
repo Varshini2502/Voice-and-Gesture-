@@ -82,6 +82,9 @@ h1{font-size:clamp(40px,6vw,68px);font-weight:800;letter-spacing:-.02em;margin-b
 .row{background:#fff;border-radius:16px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(40,30,120,.08)}
 .row b{display:block;font-size:15px}
 .row span{font-size:13px;color:#6a6aa5}
+.viewfinder{height:220px;border-radius:18px;overflow:hidden;background:#0c0c26;display:grid;place-items:center;margin-bottom:12px;color:#aeaee0;font-size:13px;text-align:center;padding:12px}
+.viewfinder video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.realbtn{display:block;text-align:center;background:#1b1b45;color:#fff;text-decoration:none;font-weight:700;padding:12px;border-radius:14px;margin-bottom:12px;font-size:14px}
 .navbar{position:absolute;bottom:0;left:0;right:0;height:56px;display:flex;justify-content:center;gap:46px;align-items:center;z-index:6;background:linear-gradient(transparent,rgba(10,10,40,.35))}
 .navbar button{background:none;font-size:20px;width:44px;height:44px;border-radius:50%;color:#fff;mix-blend-mode:normal;text-shadow:0 0 6px rgba(0,0,0,.6)}
 .navbar button:hover{background:rgba(255,255,255,.18)}
@@ -130,7 +133,10 @@ h1{font-size:clamp(40px,6vw,68px);font-weight:800;letter-spacing:-.02em;margin-b
     <section class="panel" aria-labelledby="cmdh">
       <h2 id="cmdh">What you can say or show</h2>
       <div class="cmds">
-        <div class="cmd"><div class="g">🗣️</div><div><b>“Open camera”</b><span>Opens any app by name</span></div></div>
+        <div class="cmd"><div class="g">🗣️</div><div><b>“Open YouTube / Spotify / Camera”</b><span>Opens any app by name</span></div></div>
+        <div class="cmd"><div class="g">🤟</div><div><b>Open YouTube</b><span>Gesture: 🤟 thumb, index and pinky out</span></div></div>
+        <div class="cmd"><div class="g">👎</div><div><b>Open Spotify</b><span>Gesture: thumbs down</span></div></div>
+        <div class="cmd"><div class="g">🖖</div><div><b>Open Camera</b><span>Gesture: three fingers up (index, middle, ring)</span></div></div>
         <div class="cmd"><div class="g">⬇️</div><div><b>“Scroll down” / “Scroll up”</b><span>Gesture: ✌️ down, ☝️ up</span></div></div>
         <div class="cmd"><div class="g">↔️</div><div><b>“Swipe left” / “Swipe right”</b><span>Gesture: wave an open hand</span></div></div>
         <div class="cmd"><div class="g">◀️</div><div><b>“Go back”</b><span>Gesture: ✊ closed fist</span></div></div>
@@ -175,6 +181,8 @@ const APPS = [
   {id:'phone',name:'Phone',e:'📞',c:'#34d399',items:['Mom','Dr. Rao','Pharmacy','Riya','Taxi','Grandma','Office','Library']},
   {id:'messages',name:'Messages',e:'💬',c:'#60a5fa',items:['Where are you?','Class moved to 3 pm','Happy birthday!','Hackathon team update','OTP is 482913','See you tomorrow','Lunch?','Notes please']},
   {id:'camera',name:'Camera',e:'📷',c:'#f472b6',items:['Photo mode','Video mode','Portrait','Night','Panorama','Slow motion','Time-lapse','Scan']},
+  {id:'youtube',name:'YouTube',e:'▶️',c:'#ff3b3b',url:'https://www.youtube.com',items:['Trending today','Music mix','Study with me','Hackathon tips','Python in 10 minutes','Cooking basics','Live news','Shorts']},
+  {id:'spotify',name:'Spotify',e:'🎧',c:'#1ed760',url:'https://open.spotify.com',items:['Liked songs','Daily mix 1','Discover weekly','Chill hits','Telugu top 50','Workout','Focus','Podcasts']},
   {id:'gallery',name:'Gallery',e:'🖼️',c:'#fbbf24',items:['Recents','Favourites','Beach trip','College fest','Screenshots','Family','Pets','Food']},
   {id:'maps',name:'Maps',e:'🗺️',c:'#4ade80',items:['Home','Campus','Bus stop','Hospital','Market','Station','Cafe','Park']},
   {id:'music',name:'Music',e:'🎵',c:'#a78bfa',items:['Morning calm','Focus beats','Old favourites','Workout','Sleep','Ghazals','Lo-fi','Podcasts']},
@@ -216,6 +224,13 @@ function openApp(id, src){
   current = a;
   $('#appIcon').textContent = a.e; $('#appIcon').style.background = a.c; $('#appTitle').textContent = a.name;
   const body = $('#appBody'); body.innerHTML = '';
+  if (id === 'camera') {
+    const box = document.createElement('div'); box.className = 'viewfinder';
+    if (video.srcObject) { const v = document.createElement('video'); v.autoplay = true; v.muted = true; v.playsInline = true; v.srcObject = video.srcObject; box.appendChild(v); }
+    else box.textContent = 'Allow the camera in the setup panel to see a live viewfinder';
+    body.appendChild(box);
+  }
+  if (a.url) { const l = document.createElement('a'); l.className = 'realbtn'; l.href = a.url; l.target = '_blank'; l.rel = 'noopener'; l.textContent = 'Open the real ' + a.name + ' site'; body.appendChild(l); }
   const all = [...a.items, ...a.items.map((t,i)=>t + ' · ' + (i+2) + 'd ago'), ...a.items.map((t,i)=>t + ' (saved)')];
   all.forEach((t,i) => { const r = document.createElement('div'); r.className='row'; r.innerHTML = `<b>${t}</b><span>${a.name} · item ${i+1}</span>`; body.appendChild(r); });
   body.scrollTop = 0;
@@ -250,7 +265,8 @@ function runVoice(text){
   const t = text.toLowerCase().trim();
   const open = t.match(/\b(open|launch|start)\b\s*(.*)/);
   if (open) {
-    const target = APPS.find(a => open[2].includes(a.id) || open[2].includes(a.name.toLowerCase()) || (a.id==='phone' && /call|dialer/.test(open[2])));
+    const ALIASES = { youtube:['youtube','you tube','utube'], spotify:['spotify','spotty','spot if'], camera:['camera','photo'], phone:['phone','call','dialer'] };
+    const target = APPS.find(a => (ALIASES[a.id] || [a.id, a.name.toLowerCase()]).some(k => open[2].includes(k)));
     if (target) { openApp(target.id, 'voice'); return true; }
     toast("I couldn't find that app"); return true;
   }
@@ -302,7 +318,12 @@ const GESTURE_ACTIONS = {
   Victory:     ['Scroll down', () => scrollScreen(1)],
   Closed_Fist: ['Back', goBack],
   Thumb_Up:    ['Home', goHome],
+  ILoveYou:       ['Open YouTube', () => openApp('youtube', 'gesture')],
+  Thumb_Down:     ['Open Spotify', () => openApp('spotify', 'gesture')],
+  Three_Fingers:  ['Open Camera', () => openApp('camera', 'gesture')],
 };
+// index + middle + ring up, pinky down (hand upright)
+function isThreeFingers(lm){ const up = (t, p) => lm[t].y < lm[p].y; return up(8,6) && up(12,10) && up(16,14) && !up(20,18); }
 
 async function startCamera(){
   try {
@@ -339,7 +360,8 @@ function loop(){
     const res = recognizer.recognizeForVideo(video, performance.now());
     if (res.landmarks && res.landmarks.length) {
       const lm = res.landmarks[0]; draw(lm);
-      const name = res.gestures[0]?.[0]?.categoryName || 'None';
+      let name = res.gestures[0]?.[0]?.categoryName || 'None';
+      if (isThreeFingers(lm) && !['Thumb_Up','Thumb_Down','Closed_Fist'].includes(name)) name = 'Three_Fingers';
       const wristX = 1 - lm[0].x, now = performance.now(); // 1 - x matches the mirrored preview
       trail.push({x:wristX, t:now}); while (trail.length && now - trail[0].t > 450) trail.shift();
       $('#gestureTag').textContent = name.replace('_',' ');
