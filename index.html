@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HandsFree – control your phone with voice and gestures</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#15153a; --surface:#1f1f52; --surface2:#2a2a68; --line:#3a3a85;
+  --text:#f4f4ff; --muted:#aeaee0; --primary:#8b7cff; --sun:#ffd166; --ok:#5eead4; --bad:#ff8fa3;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;background:radial-gradient(1200px 700px at 85% -10%,#3b2f9a 0%,transparent 60%),radial-gradient(900px 600px at -10% 110%,#243b8f 0%,transparent 55%),var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
+h1,h2,h3{font-family:'Bricolage Grotesque',sans-serif;line-height:1.05}
+button{font:inherit;color:inherit;cursor:pointer;border:0}
+button:focus-visible,a:focus-visible{outline:3px solid var(--sun);outline-offset:3px}
+.wrap{max-width:1180px;margin:0 auto;padding:32px 24px 56px;display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:start}
+@media(max-width:960px){.wrap{grid-template-columns:1fr}}
+.brand{display:flex;align-items:center;gap:10px;font-family:'Bricolage Grotesque';font-weight:800;font-size:20px;margin-bottom:36px}
+.logo{width:36px;height:36px;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--sun));display:grid;place-items:center;font-size:20px}
+h1{font-size:clamp(40px,6vw,68px);font-weight:800;letter-spacing:-.02em;margin-bottom:18px}
+.lead{color:var(--muted);font-size:18px;max-width:52ch;margin-bottom:30px}
+.panel{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:22px;padding:22px;margin-bottom:20px;backdrop-filter:blur(8px)}
+.panel h2{font-size:22px;margin-bottom:14px}
+.step{display:flex;align-items:center;gap:14px;padding:12px 0;border-top:1px solid var(--line)}
+.step:first-of-type{border-top:0}
+.step .ico{width:44px;height:44px;border-radius:14px;background:var(--surface2);display:grid;place-items:center;font-size:22px;flex:none}
+.step .txt{flex:1}
+.step .txt b{display:block}
+.step .txt span{color:var(--muted);font-size:14px}
+.btn{background:var(--primary);color:#0d0b2e;font-weight:700;padding:11px 18px;border-radius:12px;transition:transform .15s,background .15s}
+.btn:hover{transform:translateY(-1px);background:#a094ff}
+.btn.ghost{background:transparent;border:1.5px solid var(--line);color:var(--text)}
+.btn.sun{background:var(--sun)}
+.chip{font-size:13px;padding:5px 10px;border-radius:99px;background:var(--surface2);color:var(--muted);font-weight:500}
+.chip.ok{background:rgba(94,234,212,.15);color:var(--ok)}
+.chip.bad{background:rgba(255,143,163,.15);color:var(--bad)}
+.controls{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px}
+.listen{display:flex;align-items:center;gap:12px;margin-top:16px;padding:14px 16px;border-radius:16px;background:var(--surface);min-height:56px}
+.halo{width:14px;height:14px;border-radius:50%;background:var(--muted);flex:none}
+.halo.on{background:var(--ok);animation:pulse 1.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(94,234,212,.7)}100%{box-shadow:0 0 0 16px rgba(94,234,212,0)}}
+#heard{font-size:16px}
+.cmds{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(max-width:560px){.cmds{grid-template-columns:1fr}}
+.cmd{background:var(--surface);border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:center}
+.cmd .g{font-size:26px;width:34px;text-align:center}
+.cmd b{display:block;font-size:15px}
+.cmd span{color:var(--muted);font-size:13px}
+.cam{position:relative;border-radius:18px;overflow:hidden;background:#0c0c26;aspect-ratio:4/3;max-width:360px;display:none;margin-top:16px;border:1px solid var(--line)}
+.cam.show{display:block}
+.cam video,.cam canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.cam .tag{position:absolute;left:10px;bottom:10px;background:rgba(15,15,45,.8);padding:5px 11px;border-radius:99px;font-size:13px;z-index:2}
+/* phone */
+.phone-col{position:sticky;top:24px;display:flex;flex-direction:column;align-items:center;gap:14px}
+@media(max-width:960px){.phone-col{position:static}}
+.phone{width:320px;height:660px;border-radius:46px;background:#0a0a1f;padding:12px;box-shadow:0 0 0 2px #4b4b9c,0 40px 90px rgba(0,0,0,.55),0 0 80px rgba(139,124,255,.35)}
+.screen{position:relative;width:100%;height:100%;border-radius:36px;overflow:hidden;background:linear-gradient(170deg,#4636b8,#1d2a78 55%,#12214f)}
+.status{position:absolute;top:0;left:0;right:0;height:34px;padding:10px 22px 0;display:flex;justify-content:space-between;font-size:13px;font-weight:700;z-index:6}
+.notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:84px;height:20px;border-radius:12px;background:#05050f;z-index:7}
+.home{position:absolute;inset:0;padding:70px 0 70px}
+.greet{padding:0 24px 18px;font-family:'Bricolage Grotesque';font-size:26px;font-weight:700}
+.greet small{display:block;font-family:'DM Sans';font-weight:400;font-size:14px;color:#cfd0ff}
+.viewport{overflow:hidden;width:100%}
+.pages{display:flex;transition:transform .45s cubic-bezier(.2,.8,.2,1)}
+.page{min-width:100%;padding:8px 18px;display:grid;grid-template-columns:repeat(4,1fr);gap:20px 8px;align-content:start}
+.app-ic{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;font-size:11px;font-weight:500}
+.app-ic i{font-style:normal;width:56px;height:56px;border-radius:17px;display:grid;place-items:center;font-size:28px;box-shadow:0 6px 14px rgba(0,0,0,.25)}
+.dots{display:flex;justify-content:center;gap:7px;margin-top:20px}
+.dots b{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.35);transition:all .3s}
+.dots b.on{background:#fff;width:20px;border-radius:5px}
+.app{position:absolute;inset:0;background:#f6f6ff;color:#1b1b45;transform:translateY(100%);transition:transform .4s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column;z-index:4;border-radius:36px}
+.app.open{transform:none}
+.appbar{padding:44px 18px 14px;display:flex;align-items:center;gap:12px;font-family:'Bricolage Grotesque';font-weight:700;font-size:22px}
+.appbar i{font-style:normal;width:36px;height:36px;border-radius:11px;display:grid;place-items:center;font-size:19px}
+.appbody{flex:1;overflow-y:auto;padding:4px 16px 80px;scrollbar-width:none}
+.appbody::-webkit-scrollbar{display:none}
+.row{background:#fff;border-radius:16px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(40,30,120,.08)}
+.row b{display:block;font-size:15px}
+.row span{font-size:13px;color:#6a6aa5}
+.navbar{position:absolute;bottom:0;left:0;right:0;height:56px;display:flex;justify-content:center;gap:46px;align-items:center;z-index:6;background:linear-gradient(transparent,rgba(10,10,40,.35))}
+.navbar button{background:none;font-size:20px;width:44px;height:44px;border-radius:50%;color:#fff;mix-blend-mode:normal;text-shadow:0 0 6px rgba(0,0,0,.6)}
+.navbar button:hover{background:rgba(255,255,255,.18)}
+.toast{position:absolute;left:50%;top:48px;transform:translate(-50%,-30px);opacity:0;background:#fff;color:#15153a;font-weight:700;font-size:13px;padding:9px 16px;border-radius:99px;z-index:9;transition:all .3s;white-space:nowrap;box-shadow:0 8px 20px rgba(0,0,0,.3)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.hint{color:var(--muted);font-size:14px;text-align:center;max-width:320px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main>
+    <div class="brand"><div class="logo">🖐️</div>HandsFree</div>
+    <h1>Control your phone without touching it.</h1>
+    <p class="lead">Say a command or show a hand sign to the camera. Scroll, swipe, go back and open apps — made for people who find touchscreens hard to use.</p>
+
+    <section class="panel" aria-labelledby="perm">
+      <h2 id="perm">Set up in two taps</h2>
+      <div class="step">
+        <div class="ico">🎙️</div>
+        <div class="txt"><b>Microphone</b><span>Lets you speak commands</span></div>
+        <span class="chip" id="micChip">Not allowed yet</span>
+        <button class="btn" id="micBtn">Allow</button>
+      </div>
+      <div class="step">
+        <div class="ico">📷</div>
+        <div class="txt"><b>Camera</b><span>Lets you use hand gestures. Video stays on this device.</span></div>
+        <span class="chip" id="camChip">Not allowed yet</span>
+        <button class="btn" id="camBtn">Allow</button>
+      </div>
+      <div class="listen" aria-live="polite">
+        <div class="halo" id="halo"></div>
+        <div id="heard">Allow the microphone, then say “open messages”.</div>
+      </div>
+      <div class="cam" id="cam">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="overlay"></canvas>
+        <div class="tag" id="gestureTag">Loading hand tracking…</div>
+      </div>
+      <div class="controls">
+        <button class="btn sun" id="voiceToggle">Start listening</button>
+        <button class="btn ghost" id="demoBtn">Try without permissions</button>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="cmdh">
+      <h2 id="cmdh">What you can say or show</h2>
+      <div class="cmds">
+        <div class="cmd"><div class="g">🗣️</div><div><b>“Open camera”</b><span>Opens any app by name</span></div></div>
+        <div class="cmd"><div class="g">⬇️</div><div><b>“Scroll down” / “Scroll up”</b><span>Gesture: ✌️ down, ☝️ up</span></div></div>
+        <div class="cmd"><div class="g">↔️</div><div><b>“Swipe left” / “Swipe right”</b><span>Gesture: wave an open hand</span></div></div>
+        <div class="cmd"><div class="g">◀️</div><div><b>“Go back”</b><span>Gesture: ✊ closed fist</span></div></div>
+        <div class="cmd"><div class="g">🏠</div><div><b>“Go home”</b><span>Gesture: 👍 thumbs up</span></div></div>
+        <div class="cmd"><div class="g">⌨️</div><div><b>Keyboard backup</b><span>Arrow keys, Esc = back, H = home</span></div></div>
+      </div>
+    </section>
+  </main>
+
+  <aside class="phone-col" aria-label="Phone preview">
+    <div class="phone">
+      <div class="screen" id="screen">
+        <div class="notch"></div>
+        <div class="status"><span id="clock">9:41</span><span>5G ▂▄▆ 82%</span></div>
+        <div class="home" id="home">
+          <div class="greet">Hello 👋<small id="dateLine"></small></div>
+          <div class="viewport"><div class="pages" id="pages"></div></div>
+          <div class="dots" id="dots"></div>
+        </div>
+        <div class="app" id="app">
+          <div class="appbar"><i id="appIcon"></i><span id="appTitle"></span></div>
+          <div class="appbody" id="appBody"></div>
+        </div>
+        <div class="navbar">
+          <button id="navBack" aria-label="Back">◁</button>
+          <button id="navHome" aria-label="Home">○</button>
+        </div>
+        <div class="toast" id="toast"></div>
+      </div>
+    </div>
+    <p class="hint">Click the icons too — everything works with touch, voice or gestures.</p>
+  </aside>
+</div>
+
+<script type="module">
+import { GestureRecognizer, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+
+const $ = s => document.querySelector(s);
+
+/* ---------- Phone simulation ---------- */
+const APPS = [
+  {id:'phone',name:'Phone',e:'📞',c:'#34d399',items:['Mom','Dr. Rao','Pharmacy','Riya','Taxi','Grandma','Office','Library']},
+  {id:'messages',name:'Messages',e:'💬',c:'#60a5fa',items:['Where are you?','Class moved to 3 pm','Happy birthday!','Hackathon team update','OTP is 482913','See you tomorrow','Lunch?','Notes please']},
+  {id:'camera',name:'Camera',e:'📷',c:'#f472b6',items:['Photo mode','Video mode','Portrait','Night','Panorama','Slow motion','Time-lapse','Scan']},
+  {id:'gallery',name:'Gallery',e:'🖼️',c:'#fbbf24',items:['Recents','Favourites','Beach trip','College fest','Screenshots','Family','Pets','Food']},
+  {id:'maps',name:'Maps',e:'🗺️',c:'#4ade80',items:['Home','Campus','Bus stop','Hospital','Market','Station','Cafe','Park']},
+  {id:'music',name:'Music',e:'🎵',c:'#a78bfa',items:['Morning calm','Focus beats','Old favourites','Workout','Sleep','Ghazals','Lo-fi','Podcasts']},
+  {id:'settings',name:'Settings',e:'⚙️',c:'#94a3b8',items:['Wi-Fi','Bluetooth','Display','Sound','Battery','Accessibility','Privacy','About phone']},
+  {id:'clock',name:'Clock',e:'⏰',c:'#fb923c',items:['Alarm 6:30 am','Alarm 8:00 am','Timer','Stopwatch','World clock','Bedtime','Focus','Reminders']},
+  {id:'browser',name:'Browser',e:'🌐',c:'#38bdf8',items:['Search','Bookmarks','History','Downloads','Tabs','Reading list','News','Shopping']},
+  {id:'notes',name:'Notes',e:'📝',c:'#facc15',items:['Hackathon ideas','Shopping list','Study plan','Project tasks','Recipes','Quotes','Contacts','Travel']},
+  {id:'weather',name:'Weather',e:'⛅',c:'#67e8f9',items:['Today 31°','Tomorrow 29°','Rain at 5 pm','Wind 12 km/h','Humidity 62%','Sunrise 6:02','Sunset 6:11','Week ahead']},
+  {id:'calendar',name:'Calendar',e:'📅',c:'#f87171',items:['Team standup','Internship review','Exam prep','Doctor visit','Birthday','Workshop','Submission day','Free day']},
+];
+const PER_PAGE = 8;
+let page = 0, current = null;
+const pagesEl = $('#pages'), dotsEl = $('#dots');
+const pageCount = Math.ceil(APPS.length / PER_PAGE);
+
+for (let p = 0; p < pageCount; p++) {
+  const div = document.createElement('div'); div.className = 'page';
+  APPS.slice(p * PER_PAGE, (p + 1) * PER_PAGE).forEach(a => {
+    const b = document.createElement('button'); b.className = 'app-ic'; b.setAttribute('aria-label', 'Open ' + a.name);
+    b.innerHTML = `<i style="background:${a.c}">${a.e}</i>${a.name}`;
+    b.onclick = () => openApp(a.id, 'touch');
+    div.appendChild(b);
+  });
+  pagesEl.appendChild(div);
+  const d = document.createElement('b'); dotsEl.appendChild(d);
+}
+function renderPage(){ pagesEl.style.transform = `translateX(-${page * 100}%)`; [...dotsEl.children].forEach((d,i)=>d.classList.toggle('on',i===page)); }
+renderPage();
+
+function tick(){ const n = new Date(); $('#clock').textContent = n.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}); $('#dateLine').textContent = n.toLocaleDateString([], {weekday:'long',day:'numeric',month:'long'}); }
+tick(); setInterval(tick, 20000);
+
+let toastT;
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove('show'), 1500); }
+function setHeard(msg){ $('#heard').textContent = msg; }
+
+function openApp(id, src){
+  const a = APPS.find(x => x.id === id); if (!a) return false;
+  current = a;
+  $('#appIcon').textContent = a.e; $('#appIcon').style.background = a.c; $('#appTitle').textContent = a.name;
+  const body = $('#appBody'); body.innerHTML = '';
+  const all = [...a.items, ...a.items.map((t,i)=>t + ' · ' + (i+2) + 'd ago'), ...a.items.map((t,i)=>t + ' (saved)')];
+  all.forEach((t,i) => { const r = document.createElement('div'); r.className='row'; r.innerHTML = `<b>${t}</b><span>${a.name} · item ${i+1}</span>`; body.appendChild(r); });
+  body.scrollTop = 0;
+  $('#app').classList.add('open');
+  toast(`Opened ${a.name}`); return true;
+}
+function goHome(){ current = null; $('#app').classList.remove('open'); toast('Home'); }
+function goBack(){ if (current) { current = null; $('#app').classList.remove('open'); toast('Back'); } else toast('Already on home'); }
+function scrollScreen(dir){
+  if (!current) { toast('Open an app to scroll'); return; }
+  $('#appBody').scrollBy({top: dir * 200, behavior:'smooth'}); toast(dir > 0 ? 'Scrolled down' : 'Scrolled up');
+}
+function swipe(dir){ // dir: 'left' = next page, 'right' = previous page
+  if (current) { toast('Go home to swipe pages'); return; }
+  const next = page + (dir === 'left' ? 1 : -1);
+  if (next < 0 || next >= pageCount) { toast('No more pages'); return; }
+  page = next; renderPage(); toast('Swiped ' + dir);
+}
+
+$('#navBack').onclick = goBack; $('#navHome').onclick = goHome;
+addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown') { e.preventDefault(); scrollScreen(1); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); scrollScreen(-1); }
+  else if (e.key === 'ArrowLeft') swipe('left');
+  else if (e.key === 'ArrowRight') swipe('right');
+  else if (e.key === 'Escape') goBack();
+  else if (e.key.toLowerCase() === 'h') goHome();
+});
+
+/* ---------- Voice commands ---------- */
+function runVoice(text){
+  const t = text.toLowerCase().trim();
+  const open = t.match(/\b(open|launch|start)\b\s*(.*)/);
+  if (open) {
+    const target = APPS.find(a => open[2].includes(a.id) || open[2].includes(a.name.toLowerCase()) || (a.id==='phone' && /call|dialer/.test(open[2])));
+    if (target) { openApp(target.id, 'voice'); return true; }
+    toast("I couldn't find that app"); return true;
+  }
+  if (/scroll down|go down|page down|\bdown\b/.test(t)) { scrollScreen(1); return true; }
+  if (/scroll up|go up|page up|\bup\b/.test(t)) { scrollScreen(-1); return true; }
+  if (/swipe left|next page|\bnext\b/.test(t)) { swipe('left'); return true; }
+  if (/swipe right|previous|\bprev/.test(t)) { swipe('right'); return true; }
+  if (/\bback\b/.test(t)) { goBack(); return true; }
+  if (/\bhome\b|close app|\bclose\b/.test(t)) { goHome(); return true; }
+  return false;
+}
+
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recog, listening = false, micOK = false;
+function setChip(el, ok, text){ el.textContent = text; el.className = 'chip ' + (ok ? 'ok' : 'bad'); }
+
+function startVoice(){
+  if (!SR) { setHeard('Voice needs Chrome or Edge. Gestures and keyboard still work.'); return; }
+  recog = new SR(); recog.continuous = true; recog.interimResults = true; recog.lang = 'en-IN';
+  recog.onresult = e => {
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const txt = e.results[i][0].transcript;
+      if (e.results[i].isFinal) { const ok = runVoice(txt); setHeard(`“${txt.trim()}” ${ok ? '✓' : '— not a command'}`); }
+      else setHeard(`Listening… ${txt}`);
+    }
+  };
+  recog.onend = () => { if (listening) { try { recog.start(); } catch(_){} } };
+  recog.onerror = e => { if (e.error === 'not-allowed') { listening = false; updateVoiceUI(); setHeard('Microphone is blocked. Allow it in the address bar.'); } };
+  recog.start(); listening = true; updateVoiceUI(); setHeard('Listening… try “open messages”.');
+}
+function stopVoice(){ listening = false; try { recog && recog.stop(); } catch(_){} updateVoiceUI(); setHeard('Voice paused.'); }
+function updateVoiceUI(){ $('#halo').classList.toggle('on', listening); $('#voiceToggle').textContent = listening ? 'Stop listening' : 'Start listening'; }
+
+$('#micBtn').onclick = async () => {
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({audio:true}); s.getTracks().forEach(t => t.stop());
+    micOK = true; setChip($('#micChip'), true, 'Allowed'); startVoice();
+  } catch (e) { setChip($('#micChip'), false, 'Blocked'); setHeard('Microphone blocked. Use http://localhost and click Allow in the browser prompt.'); }
+};
+$('#voiceToggle').onclick = () => { if (listening) stopVoice(); else startVoice(); };
+$('#demoBtn').onclick = () => { setHeard('Demo mode: click icons, use arrow keys, Esc and H.'); openApp('messages','demo'); setTimeout(()=>scrollScreen(1),700); setTimeout(goHome,2200); };
+
+/* ---------- Gesture control ---------- */
+let recognizer, camOn = false, lastName = '', hold = 0, lastFire = 0;
+const trail = []; // recent wrist x positions (mirrored)
+const video = $('#video'), overlay = $('#overlay'), octx = overlay.getContext('2d');
+const GESTURE_ACTIONS = {
+  Pointing_Up: ['Scroll up', () => scrollScreen(-1)],
+  Victory:     ['Scroll down', () => scrollScreen(1)],
+  Closed_Fist: ['Back', goBack],
+  Thumb_Up:    ['Home', goHome],
+};
+
+async function startCamera(){
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'}});
+    video.srcObject = stream; $('#cam').classList.add('show'); setChip($('#camChip'), true, 'Allowed');
+    await new Promise(r => video.onloadedmetadata = r);
+    overlay.width = video.videoWidth; overlay.height = video.videoHeight;
+    $('#gestureTag').textContent = 'Loading hand tracking…';
+    const fileset = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+    recognizer = await GestureRecognizer.createFromOptions(fileset, {
+      baseOptions:{ modelAssetPath:'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task', delegate:'GPU' },
+      runningMode:'VIDEO', numHands:1
+    });
+    camOn = true; $('#gestureTag').textContent = 'Show your hand'; loop();
+  } catch (e) {
+    setChip($('#camChip'), false, 'Blocked');
+    $('#gestureTag').textContent = 'Camera unavailable';
+    toast('Camera blocked or offline');
+  }
+}
+$('#camBtn').onclick = startCamera;
+
+function draw(lm){
+  octx.clearRect(0,0,overlay.width,overlay.height);
+  octx.fillStyle = '#ffd166';
+  lm.forEach(p => { octx.beginPath(); octx.arc(p.x*overlay.width, p.y*overlay.height, 4, 0, 7); octx.fill(); });
+}
+
+function fire(label, fn){ const now = performance.now(); if (now - lastFire < 1100) return; lastFire = now; fn(); setHeard('Gesture: ' + label + ' ✓'); }
+
+function loop(){
+  if (!camOn) return;
+  if (video.readyState >= 2) {
+    const res = recognizer.recognizeForVideo(video, performance.now());
+    if (res.landmarks && res.landmarks.length) {
+      const lm = res.landmarks[0]; draw(lm);
+      const name = res.gestures[0]?.[0]?.categoryName || 'None';
+      const wristX = 1 - lm[0].x, now = performance.now(); // 1 - x matches the mirrored preview
+      trail.push({x:wristX, t:now}); while (trail.length && now - trail[0].t > 450) trail.shift();
+      $('#gestureTag').textContent = name.replace('_',' ');
+
+      if (name === 'Open_Palm' && trail.length > 4) { // wave = swipe
+        const dx = trail[trail.length-1].x - trail[0].x;
+        if (dx > 0.28) { fire('Swipe right', () => swipe('right')); trail.length = 0; }
+        else if (dx < -0.28) { fire('Swipe left', () => swipe('left')); trail.length = 0; }
+      }
+      hold = (name === lastName) ? hold + 1 : 1; lastName = name;
+      const act = GESTURE_ACTIONS[name];
+      if (act && hold >= 8) { fire(act[0], act[1]); hold = 0; }
+    } else { octx.clearRect(0,0,overlay.width,overlay.height); $('#gestureTag').textContent = 'Show your hand'; lastName = ''; hold = 0; trail.length = 0; }
+  }
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>
